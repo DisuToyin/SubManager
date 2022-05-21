@@ -1,8 +1,8 @@
-const User = require("../models/users.models");
+const User = require("../models/users_models");
 // const ErrorResponse = require("../utils/errorResponse");
 // const crypto = require("crypto");
 const dc_service = require("../utils/dialcode")
-const {check_if_phone_number_exist} = require("../services/users")
+const {check_if_phone_number_exist, find_by_email, check_password} = require("../services/users")
 
 const sendToken = (user, statusCode, res) => {
     const token = user.getSignedToken();
@@ -32,7 +32,7 @@ exports.register = async (req, res) => {
         }
         
         if(phone_number && dialcode){
-            check_phone = check_if_phone_number_exist(phone_number, dialcode)
+            check_phone = await check_if_phone_number_exist(phone_number, dialcode)
             if(check_phone === true) return res.status(403).json({ success: false, message: "this phone_number and dialcode already exist" });
         }
     
@@ -51,11 +51,37 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { email, password} = req.body;
+    // const { email, password } = req.body;
+    // if (!email || !password) return res.status(403).json({success: false, message: "input email and password"})
+
+    // try {
+    //     const user = await find_by_email(email)
+    //     if (!user) return res.status(404).json({ success: false, message: "Invalid Credentials" });
+            
+    //     const check_pass = await check_password(user)
+    //     if (check_pass === false) return res.status(404).json({ success: false, message: "Invalid Credentials Pass" });
+      
+    //     return res.status(200).json({success: false, user})
+    // } catch (error) {
+    //     res.status(500).json(error);
+    // }
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(403).json({ success: false, message: "user not found" });
   
     try {
-        res.status(200).json({success: true})
+      const user = await User.findOne({ email }).select("+password");
+      if (!user)
+        res.status(404).json({ success: false, message: "user not found" });
+      else {
+        const isMatch = await user.matchPasswords(password);
+        isMatch
+          ? sendToken(user, 200, res)
+          : res.status(404).json({ success: false, message: "user not found" });
+      }
     } catch (error) {
-        res.status(500).json({ success: false, error });
+        console.log(error)
+      res.status(500).json(error);
     }
-  };
+    
+};

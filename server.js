@@ -6,7 +6,7 @@ const morgan = require("morgan");
 const connectDB = require("./db/db");
 connectDB();
 
-const userRoute = require("./routes/users.routes");
+const userRoute = require("./routes/users_routes");
 
 app.use(morgan("dev"));
 app.use(express.json());
